@@ -1,0 +1,15 @@
+name: bertopic
+dependencies:
+  - python=3.8
+  - pytorch::pytorch=1.12.1
+  - pytorch::torchvision
+  - cudatoolkit=11.3
+  - pandas=1.4.3
+  - scikit-learn=1.1.1
+  - beautifulsoup=4.11.1
+  - conda-forge::pyarrow=9.0.0
+  - conda-forge::plotnine=0.9.0
+  - pip
+  - pip:
+    - sentence-transformers
+    - bertopic

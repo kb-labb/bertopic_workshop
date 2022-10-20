@@ -53,7 +53,7 @@ def parse_html(motion):
     for table in soup.find_all("table"):
         table.extract()
 
-    # Add periods to headers, so we can segment sentences properly later.
+    # Add periods to headers, so we can perform sentence segmentation later if necessary
     for title in soup.find_all(["h1", "h2", "h3"]):
         for span in title.find_all("span"):
             span.insert(len(span.get_text()), NavigableString("."))
@@ -68,13 +68,9 @@ def parse_html(motion):
         print(print(motion["dokumentstatus"]["dokument"]["dok_id"]))
         return None
 
-    soup = motion_start.find_all_next()
-
+    # Find all headers and paragraphs after motion start
+    soup = motion_start.find_all_next(["h1", "h2", "h3", "p"])
     soup = BeautifulSoup("".join([str(tag) for tag in soup]), "html.parser")
-
-    # Remove header tags because header text is duplicated in span tags.
-    for title in soup.find_all(["h1", "h2", "h3"]):
-        title.extract()
 
     motion_text = "".join(tag.get_text() for tag in soup)
     motion_text = " ".join(motion_text.split())  # Remove newlines, excessive whitespace
@@ -82,16 +78,16 @@ def parse_html(motion):
     party_count = author_party_count(motion)
 
     motion_fields = {
-        "hangar_id": motion["dokumentstatus"]["dokument"]["hangar_id"],
         "dok_id": motion["dokumentstatus"]["dokument"]["dok_id"],
-        "organ": motion["dokumentstatus"]["dokument"]["organ"],
-        "subtyp": motion["dokumentstatus"]["dokument"]["subtyp"],
+        "text": motion_text,
+        "datum": motion["dokumentstatus"]["dokument"]["datum"],
+        "dokument_url_html": motion["dokumentstatus"]["dokument"]["dokument_url_html"],
         "titel": motion["dokumentstatus"]["dokument"]["titel"],
         "subtitel": motion["dokumentstatus"]["dokument"]["subtitel"],
-        "dokument_url_html": motion["dokumentstatus"]["dokument"]["dokument_url_html"],
-        "datum": motion["dokumentstatus"]["dokument"]["datum"],
-        "text": motion_text,
+        "organ": motion["dokumentstatus"]["dokument"]["organ"],
+        "subtyp": motion["dokumentstatus"]["dokument"]["subtyp"],
         "party_count": [party_count],
+        "hangar_id": motion["dokumentstatus"]["dokument"]["hangar_id"],
     }
 
     return motion_fields
@@ -146,12 +142,12 @@ df["single_party_authors"] = (
 ).sum(axis="columns")
 
 df["single_party_authors"] = df["single_party_authors"] <= 1
-df["text"] = df["text"].str.replace("^\.", "")
-df["text"] = df["text"].str.replace("^Motivering.", "").str.strip()
-df["text"] = df["text"].str.replace("^Bakgrund.", "").str.strip()
-df["text"] = df["text"].str.replace("^Inledning", "").str.strip()
+df["text"] = df["text"].str.replace("^\.", "", regex=True)
+df["text"] = df["text"].str.replace("^Motivering.", "", regex=True).str.strip()
+df["text"] = df["text"].str.replace("^Bakgrund.", "", regex=True).str.strip()
+df["text"] = df["text"].str.replace("^Inledning", "", regex=True).str.strip()
 # https://stackoverflow.com/questions/51976328/best-way-to-remove-xad-in-python
-df["text"] = df["text"].str.replace("\xad", "")
+df["text"] = df["text"].str.replace("\xad", "", regex=True)
 
 
 df.to_parquet("motioner_2014_2021.parquet")
